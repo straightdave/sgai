@@ -22,8 +22,16 @@ func testFS() fstest.MapFS {
 	}
 }
 
+func testPrivFS() fstest.MapFS {
+	return fstest.MapFS{
+		"x36xhzz.m3u8": {
+			Data: []byte("#EXTM3U\n"),
+		},
+	}
+}
+
 func TestHealthEndpoint(t *testing.T) {
-	h := server.New(testFS())
+	h := server.New(testFS(), testPrivFS())
 	req := httptest.NewRequest(http.MethodGet, "/api/health", nil)
 	rec := httptest.NewRecorder()
 
@@ -43,7 +51,7 @@ func TestHealthEndpoint(t *testing.T) {
 }
 
 func TestUnknownAPIRouteReturns404JSON(t *testing.T) {
-	h := server.New(testFS())
+	h := server.New(testFS(), testPrivFS())
 	req := httptest.NewRequest(http.MethodGet, "/api/does-not-exist", nil)
 	rec := httptest.NewRecorder()
 
@@ -58,7 +66,7 @@ func TestUnknownAPIRouteReturns404JSON(t *testing.T) {
 }
 
 func TestStaticAssetAndSPAFallback(t *testing.T) {
-	h := server.New(testFS())
+	h := server.New(testFS(), testPrivFS())
 
 	t.Run("root serves index.html", func(t *testing.T) {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -96,6 +104,36 @@ func TestStaticAssetAndSPAFallback(t *testing.T) {
 		}
 		if !strings.Contains(rec.Body.String(), `<div id="root">`) {
 			t.Fatalf("expected index.html fallback, got %q", rec.Body.String())
+		}
+	})
+}
+
+func TestPrivHLSManifestServing(t *testing.T) {
+	h := server.New(testFS(), testPrivFS())
+
+	t.Run("serves local manifest", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/priv/x36xhzz.m3u8", nil)
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected status 200, got %d", rec.Code)
+		}
+		if ct := rec.Header().Get("Content-Type"); !strings.Contains(ct, "mpegurl") {
+			t.Fatalf("expected mpegurl content-type, got %q", ct)
+		}
+		if !strings.Contains(rec.Body.String(), "#EXTM3U") {
+			t.Fatalf("expected playlist content, got %q", rec.Body.String())
+		}
+	})
+
+	t.Run("missing file returns 404", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/priv/missing.m3u8", nil)
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusNotFound {
+			t.Fatalf("expected status 404, got %d", rec.Code)
 		}
 	})
 }

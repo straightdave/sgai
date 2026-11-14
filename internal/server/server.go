@@ -11,8 +11,8 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-// New constructs the Chi router with API routes and the embedded SPA handler.
-func New(frontendFS fs.FS) http.Handler {
+// New constructs the Chi router with API routes, optional /priv static handler, and the embedded SPA handler.
+func New(frontendFS, privFS fs.FS) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)
@@ -26,6 +26,10 @@ func New(frontendFS fs.FS) http.Handler {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
 		})
 	})
+
+	if privFS != nil {
+		r.Handle("/priv/*", privHandler(privFS))
+	}
 
 	if frontendFS != nil {
 		r.NotFound(spaHandler(frontendFS))
@@ -42,6 +46,33 @@ func writeJSON(w http.ResponseWriter, status int, payload any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(payload)
+}
+
+func privHandler(privFS fs.FS) http.Handler {
+	fileServer := http.StripPrefix("/priv/", http.FileServer(http.FS(privFS)))
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			http.NotFound(w, r)
+			return
+		}
+
+		relPath := strings.TrimPrefix(path.Clean(r.URL.Path), "/priv/")
+		if relPath == "" || relPath == "." || strings.HasPrefix(relPath, "..") {
+			http.NotFound(w, r)
+			return
+		}
+
+		if info, err := fs.Stat(privFS, relPath); err == nil && !info.IsDir() {
+			if strings.HasSuffix(relPath, ".m3u8") {
+				w.Header().Set("Content-Type", "application/vnd.apple.mpegurl")
+			}
+			fileServer.ServeHTTP(w, r)
+			return
+		}
+
+		http.NotFound(w, r)
+	})
 }
 
 func spaHandler(frontendFS fs.FS) http.HandlerFunc {

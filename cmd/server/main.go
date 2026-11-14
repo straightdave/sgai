@@ -31,7 +31,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:              *addr,
-		Handler:           server.New(frontendFS),
+		Handler:           server.New(frontendFS, os.DirFS("priv")),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
