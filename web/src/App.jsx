@@ -12,6 +12,7 @@ export default function App() {
   const playingAdRef = useRef(false)
 
   const [playingAd, setPlayingAd] = useState(false)
+  const [adCountdown, setAdCountdown] = useState(null)
   const [health, setHealth] = useState({ state: 'loading', text: 'Checking API...' })
   const [playerError, setPlayerError] = useState(null)
 
@@ -64,6 +65,7 @@ export default function App() {
 
     const startAd = async (item) => {
       playingAdRef.current = true
+      setAdCountdown(null)
       primaryVideo.pause()
       setPlayingAd(true)
 
@@ -115,7 +117,13 @@ export default function App() {
       if (nextBreak) {
         triggeredIdsRef.current.add(nextBreak.id)
         startAd(nextBreak)
+        return
       }
+
+      const upcoming = breaksRef.current.find(
+        (b) => !triggeredIdsRef.current.has(b.id) && b.time - now > 0 && b.time - now <= 5
+      )
+      setAdCountdown(upcoming ? Math.ceil(upcoming.time - now) : null)
     }
     primaryVideo.addEventListener('timeupdate', onTimeUpdate)
 
@@ -186,6 +194,9 @@ export default function App() {
           playsInline
         />
         {playingAd && <span className="ad-badge">Ad</span>}
+        {!playingAd && adCountdown !== null && (
+          <span className="ad-badge">Ad in {adCountdown}s</span>
+        )}
         {playerError && <p className="player-error">{playerError}</p>}
       </div>
       <div className={`status ${health.state}`}>{health.text}</div>
