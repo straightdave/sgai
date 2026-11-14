@@ -66,7 +66,7 @@ func handleAds(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string][]interstitialAsset{
 		"ASSETS": {
 			{
-				URI:      "/priv/ads/countdown_5s.m3u8",
+				URI:      "/priv/ads/countdown_5s.mp4",
 				Duration: 5.0,
 			},
 		},

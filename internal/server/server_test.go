@@ -158,7 +158,7 @@ func TestAdsEndpoint(t *testing.T) {
 	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
 		t.Fatalf("failed to decode JSON: %v", err)
 	}
-	if len(body.Assets) != 1 || body.Assets[0].URI != "/priv/ads/countdown_5s.m3u8" {
+	if len(body.Assets) != 1 || body.Assets[0].URI != "/priv/ads/countdown_5s.mp4" {
 		t.Fatalf("unexpected assets payload: %+v", body.Assets)
 	}
 
