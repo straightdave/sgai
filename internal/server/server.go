@@ -1,0 +1,80 @@
+package server
+
+import (
+	"encoding/json"
+	"io/fs"
+	"net/http"
+	"path"
+	"strings"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+)
+
+// New constructs the Chi router with API routes and the embedded SPA handler.
+func New(frontendFS fs.FS) http.Handler {
+	r := chi.NewRouter()
+
+	r.Use(middleware.RequestID)
+	r.Use(middleware.RealIP)
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+
+	r.Route("/api", func(r chi.Router) {
+		r.Get("/health", handleHealth)
+		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
+		})
+	})
+
+	if frontendFS != nil {
+		r.NotFound(spaHandler(frontendFS))
+	}
+
+	return r
+}
+
+func handleHealth(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+func writeJSON(w http.ResponseWriter, status int, payload any) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(payload)
+}
+
+func spaHandler(frontendFS fs.FS) http.HandlerFunc {
+	fileServer := http.FileServer(http.FS(frontendFS))
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			http.NotFound(w, r)
+			return
+		}
+
+		cleanPath := strings.TrimPrefix(path.Clean(r.URL.Path), "/")
+		if cleanPath == "" || cleanPath == "." {
+			serveIndex(w, frontendFS)
+			return
+		}
+
+		if info, err := fs.Stat(frontendFS, cleanPath); err == nil && !info.IsDir() {
+			fileServer.ServeHTTP(w, r)
+			return
+		}
+
+		serveIndex(w, frontendFS)
+	}
+}
+
+func serveIndex(w http.ResponseWriter, frontendFS fs.FS) {
+	data, err := fs.ReadFile(frontendFS, "index.html")
+	if err != nil {
+		http.Error(w, "frontend index not found", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(data)
+}

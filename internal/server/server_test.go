@@ -1,0 +1,101 @@
+package server_test
+
+import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+	"testing/fstest"
+
+	"github.com/straightdave/sgai/internal/server"
+)
+
+func testFS() fstest.MapFS {
+	return fstest.MapFS{
+		"index.html": {
+			Data: []byte("<!doctype html><html><body><div id=\"root\"></div></body></html>"),
+		},
+		"assets/app.js": {
+			Data: []byte("console.log('ok');"),
+		},
+	}
+}
+
+func TestHealthEndpoint(t *testing.T) {
+	h := server.New(testFS())
+	req := httptest.NewRequest(http.MethodGet, "/api/health", nil)
+	rec := httptest.NewRecorder()
+
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+
+	var body map[string]string
+	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode JSON: %v", err)
+	}
+	if body["status"] != "ok" {
+		t.Fatalf("expected status 'ok', got %q", body["status"])
+	}
+}
+
+func TestUnknownAPIRouteReturns404JSON(t *testing.T) {
+	h := server.New(testFS())
+	req := httptest.NewRequest(http.MethodGet, "/api/does-not-exist", nil)
+	rec := httptest.NewRecorder()
+
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected status 404, got %d", rec.Code)
+	}
+	if ct := rec.Header().Get("Content-Type"); !strings.Contains(ct, "application/json") {
+		t.Fatalf("expected JSON content-type, got %q", ct)
+	}
+}
+
+func TestStaticAssetAndSPAFallback(t *testing.T) {
+	h := server.New(testFS())
+
+	t.Run("root serves index.html", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected status 200, got %d", rec.Code)
+		}
+		if !strings.Contains(rec.Body.String(), `<div id="root">`) {
+			t.Fatalf("expected index.html body, got %q", rec.Body.String())
+		}
+	})
+
+	t.Run("static asset served directly", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/assets/app.js", nil)
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected status 200, got %d", rec.Code)
+		}
+		if !strings.Contains(rec.Body.String(), "console.log('ok')") {
+			t.Fatalf("unexpected asset body: %q", rec.Body.String())
+		}
+	})
+
+	t.Run("client-side route falls back to index.html", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/dashboard/settings", nil)
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected status 200, got %d", rec.Code)
+		}
+		if !strings.Contains(rec.Body.String(), `<div id="root">`) {
+			t.Fatalf("expected index.html fallback, got %q", rec.Body.String())
+		}
+	})
+}
