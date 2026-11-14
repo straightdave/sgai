@@ -46,9 +46,23 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 type interstitialAsset struct {
 	URI      string  `json:"URI"`
 	Duration float64 `json:"DURATION"`
+	Layout   string  `json:"LAYOUT,omitempty"`
 }
 
 func handleAds(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Query().Get("type") == "squeezeback" {
+		writeJSON(w, http.StatusOK, map[string][]interstitialAsset{
+			"ASSETS": {
+				{
+					URI:      "/priv/ads/squeezeback_l_10s.mp4",
+					Duration: 10.0,
+					Layout:   "l-squeezeback",
+				},
+			},
+		})
+		return
+	}
+
 	writeJSON(w, http.StatusOK, map[string][]interstitialAsset{
 		"ASSETS": {
 			{

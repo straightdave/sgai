@@ -161,4 +161,27 @@ func TestAdsEndpoint(t *testing.T) {
 	if len(body.Assets) != 1 || body.Assets[0].URI != "/priv/ads/countdown_5s.m3u8" {
 		t.Fatalf("unexpected assets payload: %+v", body.Assets)
 	}
+
+	t.Run("squeezeback query returns l-shape ad", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/ads?type=squeezeback", nil)
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected status 200, got %d", rec.Code)
+		}
+		var sb struct {
+			Assets []struct {
+				URI      string  `json:"URI"`
+				Duration float64 `json:"DURATION"`
+				Layout   string  `json:"LAYOUT"`
+			} `json:"ASSETS"`
+		}
+		if err := json.NewDecoder(rec.Body).Decode(&sb); err != nil {
+			t.Fatalf("failed to decode JSON: %v", err)
+		}
+		if len(sb.Assets) != 1 || sb.Assets[0].URI != "/priv/ads/squeezeback_l_10s.mp4" || sb.Assets[0].Layout != "l-squeezeback" {
+			t.Fatalf("unexpected squeezeback payload: %+v", sb.Assets)
+		}
+	})
 }

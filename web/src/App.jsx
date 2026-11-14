@@ -9,9 +9,9 @@ export default function App() {
   const adHlsRef = useRef(null)
   const breaksRef = useRef([])
   const triggeredIdsRef = useRef(new Set())
-  const playingAdRef = useRef(false)
+  const adModeRef = useRef(null) // null | 'fullscreen' | 'squeezeback'
 
-  const [playingAd, setPlayingAd] = useState(false)
+  const [adMode, setAdMode] = useState(null)
   const [adCountdown, setAdCountdown] = useState(null)
   const [health, setHealth] = useState({ state: 'loading', text: 'Checking API...' })
   const [playerError, setPlayerError] = useState(null)
@@ -50,36 +50,48 @@ export default function App() {
     let destroyed = false
 
     const finishAd = () => {
+      const wasFullscreen = adModeRef.current === 'fullscreen'
       if (adHlsRef.current) {
         adHlsRef.current.destroy()
         adHlsRef.current = null
       }
       adVideo.removeAttribute('src')
       adVideo.load()
-      playingAdRef.current = false
-      setPlayingAd(false)
-      if (!destroyed) {
+      adModeRef.current = null
+      setAdMode(null)
+      if (!destroyed && wasFullscreen) {
         primaryVideo.play().catch(() => {})
       }
     }
 
     const startAd = async (item) => {
-      playingAdRef.current = true
+      const initialMode = item.adType === 'squeezeback' ? 'squeezeback' : 'fullscreen'
+      adModeRef.current = initialMode
       setAdCountdown(null)
-      primaryVideo.pause()
-      setPlayingAd(true)
+      if (initialMode === 'fullscreen') {
+        primaryVideo.pause()
+      }
+      setAdMode(initialMode)
 
       try {
         let adUri = item.assetUri
+        let layout = ''
         if (!adUri && item.assetListUrl) {
           const res = await fetch(item.assetListUrl)
           if (!res.ok) throw new Error(`Ad query HTTP ${res.status}`)
           const data = await res.json()
           adUri = data?.ASSETS?.[0]?.URI
+          layout = data?.ASSETS?.[0]?.LAYOUT || ''
         }
         if (!adUri || destroyed) {
           finishAd()
           return
+        }
+
+        if (layout === 'l-squeezeback' && adModeRef.current !== 'squeezeback') {
+          adModeRef.current = 'squeezeback'
+          setAdMode('squeezeback')
+          primaryVideo.play().catch(() => {})
         }
 
         if (adUri.endsWith('.m3u8') && Hls.isSupported()) {
@@ -109,7 +121,7 @@ export default function App() {
     adVideo.addEventListener('error', onAdError)
 
     const onTimeUpdate = () => {
-      if (playingAdRef.current) return
+      if (adModeRef.current) return
       const now = primaryVideo.currentTime
       const nextBreak = breaksRef.current.find(
         (b) => !triggeredIdsRef.current.has(b.id) && now >= b.time && now < b.time + 2
@@ -145,6 +157,7 @@ export default function App() {
             time: (dr.startDate.getTime() - basePdt) / 1000,
             assetListUrl: dr.attr?.['X-ASSET-LIST'] || '',
             assetUri: dr.attr?.['X-ASSET-URI'] || '',
+            adType: dr.attr?.['X-AD-TYPE'] || '',
           }))
           .sort((a, b) => a.time - b.time)
 
@@ -184,17 +197,17 @@ export default function App() {
       <div className="player-wrapper">
         <video
           ref={primaryVideoRef}
-          className="hls-player"
-          controls={!playingAd}
+          className={`hls-player primary-player ${adMode === 'squeezeback' ? 'squeezed' : ''}`}
+          controls={adMode !== 'fullscreen'}
           playsInline
         />
         <video
           ref={adVideoRef}
-          className={`hls-player ad-player ${playingAd ? 'active' : ''}`}
+          className={`hls-player ad-player ${adMode ? `active ${adMode}` : ''}`}
           playsInline
         />
-        {playingAd && <span className="ad-badge">Ad</span>}
-        {!playingAd && adCountdown !== null && (
+        {adMode && <span className="ad-badge">Ad</span>}
+        {!adMode && adCountdown !== null && (
           <span className="ad-badge">Ad in {adCountdown}s</span>
         )}
         {playerError && <p className="player-error">{playerError}</p>}
