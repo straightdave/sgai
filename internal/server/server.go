@@ -59,10 +59,15 @@ type interstitialAsset struct {
 
 func handleAds(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
+
+	// Get Player capability
 	clickable := q.Get("clickable") == "1" || q.Get("clickable") == "true"
 	supportsSqueezeback := q.Get("squeezeback") == "1" || q.Get("squeezeback") == "true"
+
+	// Get Slot traits
 	playback := q.Get("playback")
 
+	// == Mimic remote ads bidding and decisioning ==
 	if playback == "continue" && supportsSqueezeback {
 		asset := interstitialAsset{
 			URI:      "/priv/ads/squeezeback_l_10s.mp4",
@@ -82,6 +87,7 @@ func handleAds(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// == prepare ASSET-LIST response ==
 	asset := interstitialAsset{
 		URI:      "/priv/ads/countdown_5s.mp4",
 		Duration: 5.0,

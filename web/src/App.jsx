@@ -211,7 +211,7 @@ export default function App() {
 
   return (
     <main className="container">
-      <h1>sgai</h1>
+      <h1>SGAI</h1>
       <p>Go + Chi web service with an embedded React JS application.</p>
       <div className="player-wrapper">
         <video
