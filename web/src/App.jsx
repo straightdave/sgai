@@ -13,6 +13,8 @@ export default function App() {
 
   const [adMode, setAdMode] = useState(null)
   const [adCountdown, setAdCountdown] = useState(null)
+  const [adButton, setAdButton] = useState(null)
+  const [adButtonClicked, setAdButtonClicked] = useState(false)
   const [health, setHealth] = useState({ state: 'loading', text: 'Checking API...' })
   const [playerError, setPlayerError] = useState(null)
 
@@ -59,39 +61,46 @@ export default function App() {
       adVideo.load()
       adModeRef.current = null
       setAdMode(null)
+      setAdButton(null)
+      setAdButtonClicked(false)
       if (!destroyed && wasFullscreen) {
         primaryVideo.play().catch(() => {})
       }
     }
 
     const startAd = async (item) => {
-      const initialMode = item.adType === 'squeezeback' ? 'squeezeback' : 'fullscreen'
-      adModeRef.current = initialMode
+      adModeRef.current = 'loading'
       setAdCountdown(null)
-      if (initialMode === 'fullscreen') {
-        primaryVideo.pause()
-      }
-      setAdMode(initialMode)
+      setAdButton(null)
+      setAdButtonClicked(false)
 
       try {
         let adUri = item.assetUri
         let layout = ''
+        let buttonMeta = null
         if (!adUri && item.assetListUrl) {
-          const res = await fetch(item.assetListUrl)
+          const assetListUrl = new URL(item.assetListUrl, window.location.origin)
+          assetListUrl.searchParams.set('clickable', '1')
+          assetListUrl.searchParams.set('squeezeback', '1')
+          const res = await fetch(assetListUrl.pathname + assetListUrl.search)
           if (!res.ok) throw new Error(`Ad query HTTP ${res.status}`)
           const data = await res.json()
-          adUri = data?.ASSETS?.[0]?.URI
-          layout = data?.ASSETS?.[0]?.LAYOUT || ''
+          const asset = data?.ASSETS?.[0]
+          adUri = asset?.URI
+          layout = asset?.LAYOUT || ''
+          buttonMeta = asset?.BUTTON || null
         }
         if (!adUri || destroyed) {
           finishAd()
           return
         }
 
-        if (layout === 'l-squeezeback' && adModeRef.current !== 'squeezeback') {
-          adModeRef.current = 'squeezeback'
-          setAdMode('squeezeback')
-          primaryVideo.play().catch(() => {})
+        const mode = layout === 'l-squeezeback' ? 'squeezeback' : 'fullscreen'
+        adModeRef.current = mode
+        setAdMode(mode)
+        setAdButton(buttonMeta)
+        if (mode === 'fullscreen') {
+          primaryVideo.pause()
         }
 
         if (adUri.endsWith('.m3u8') && Hls.isSupported()) {
@@ -157,7 +166,6 @@ export default function App() {
             time: (dr.startDate.getTime() - basePdt) / 1000,
             assetListUrl: dr.attr?.['X-ASSET-LIST'] || '',
             assetUri: dr.attr?.['X-ASSET-URI'] || '',
-            adType: dr.attr?.['X-AD-TYPE'] || '',
           }))
           .sort((a, b) => a.time - b.time)
 
@@ -190,6 +198,17 @@ export default function App() {
     }
   }, [])
 
+  const handleAdButtonClick = () => {
+    if (!adButton?.URL) return
+    if (adButton.ACTION === 'request') {
+      fetch(adButton.URL, { method: 'POST' })
+        .then(() => setAdButtonClicked(true))
+        .catch(() => {})
+      return
+    }
+    window.open(adButton.URL, '_blank', 'noopener,noreferrer')
+  }
+
   return (
     <main className="container">
       <h1>sgai</h1>
@@ -207,6 +226,15 @@ export default function App() {
           playsInline
         />
         {adMode && <span className="ad-badge">Ad</span>}
+        {adMode && adButton && (
+          <button
+            type="button"
+            className="ad-cta-button"
+            onClick={handleAdButtonClick}
+          >
+            {adButtonClicked ? 'Clicked!' : adButton.LABEL}
+          </button>
+        )}
         {!adMode && adCountdown !== null && (
           <span className="ad-badge">Ad in {adCountdown}s</span>
         )}

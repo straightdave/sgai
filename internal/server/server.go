@@ -23,6 +23,7 @@ func New(frontendFS, privFS fs.FS) http.Handler {
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/health", handleHealth)
 		r.Get("/ads", handleAds)
+		r.Post("/ads/click", handleAdClick)
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
 		})
@@ -43,34 +44,62 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
+type interstitialButton struct {
+	Label  string `json:"LABEL"`
+	Action string `json:"ACTION"`
+	URL    string `json:"URL"`
+}
+
 type interstitialAsset struct {
-	URI      string  `json:"URI"`
-	Duration float64 `json:"DURATION"`
-	Layout   string  `json:"LAYOUT,omitempty"`
+	URI      string              `json:"URI"`
+	Duration float64             `json:"DURATION"`
+	Layout   string              `json:"LAYOUT,omitempty"`
+	Button   *interstitialButton `json:"BUTTON,omitempty"`
 }
 
 func handleAds(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Query().Get("type") == "squeezeback" {
+	q := r.URL.Query()
+	clickable := q.Get("clickable") == "1" || q.Get("clickable") == "true"
+	supportsSqueezeback := q.Get("squeezeback") == "1" || q.Get("squeezeback") == "true"
+	playback := q.Get("playback")
+
+	if playback == "continue" && supportsSqueezeback {
+		asset := interstitialAsset{
+			URI:      "/priv/ads/squeezeback_l_10s.mp4",
+			Duration: 10.0,
+			Layout:   "l-squeezeback",
+		}
+		if clickable {
+			asset.Button = &interstitialButton{
+				Label:  "Claim Offer",
+				Action: "request",
+				URL:    "/api/ads/click",
+			}
+		}
 		writeJSON(w, http.StatusOK, map[string][]interstitialAsset{
-			"ASSETS": {
-				{
-					URI:      "/priv/ads/squeezeback_l_10s.mp4",
-					Duration: 10.0,
-					Layout:   "l-squeezeback",
-				},
-			},
+			"ASSETS": {asset},
 		})
 		return
 	}
 
+	asset := interstitialAsset{
+		URI:      "/priv/ads/countdown_5s.mp4",
+		Duration: 5.0,
+	}
+	if clickable {
+		asset.Button = &interstitialButton{
+			Label:  "Learn More",
+			Action: "link",
+			URL:    "https://example.com",
+		}
+	}
 	writeJSON(w, http.StatusOK, map[string][]interstitialAsset{
-		"ASSETS": {
-			{
-				URI:      "/priv/ads/countdown_5s.mp4",
-				Duration: 5.0,
-			},
-		},
+		"ASSETS": {asset},
 	})
+}
+
+func handleAdClick(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {
