@@ -137,3 +137,28 @@ func TestPrivHLSManifestServing(t *testing.T) {
 		}
 	})
 }
+
+func TestAdsEndpoint(t *testing.T) {
+	h := server.New(testFS(), testPrivFS())
+	req := httptest.NewRequest(http.MethodGet, "/api/ads?_HLS_start_offset=0", nil)
+	rec := httptest.NewRecorder()
+
+	h.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", rec.Code)
+	}
+
+	var body struct {
+		Assets []struct {
+			URI      string  `json:"URI"`
+			Duration float64 `json:"DURATION"`
+		} `json:"ASSETS"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&body); err != nil {
+		t.Fatalf("failed to decode JSON: %v", err)
+	}
+	if len(body.Assets) != 1 || body.Assets[0].URI != "/priv/ads/countdown_5s.m3u8" {
+		t.Fatalf("unexpected assets payload: %+v", body.Assets)
+	}
+}

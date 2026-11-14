@@ -22,6 +22,7 @@ func New(frontendFS, privFS fs.FS) http.Handler {
 
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/health", handleHealth)
+		r.Get("/ads", handleAds)
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
 		})
@@ -40,6 +41,22 @@ func New(frontendFS, privFS fs.FS) http.Handler {
 
 func handleHealth(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+type interstitialAsset struct {
+	URI      string  `json:"URI"`
+	Duration float64 `json:"DURATION"`
+}
+
+func handleAds(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string][]interstitialAsset{
+		"ASSETS": {
+			{
+				URI:      "/priv/ads/countdown_5s.m3u8",
+				Duration: 5.0,
+			},
+		},
+	})
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {
