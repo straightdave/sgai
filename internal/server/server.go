@@ -20,10 +20,19 @@ func New(frontendFS, privFS fs.FS) http.Handler {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
+	live := NewLiveStream(privFS)
+
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/health", handleHealth)
 		r.Get("/ads", handleAds)
 		r.Post("/ads/click", handleAdClick)
+		r.Route("/live", func(r chi.Router) {
+			r.Post("/start", live.handleStart)
+			r.Post("/stop", live.handleStop)
+			r.Get("/status", live.handleStatus)
+			r.Get("/master.m3u8", live.handleMasterPlaylist)
+			r.Get("/{variant}/playlist.m3u8", live.handleVariantPlaylist)
+		})
 		r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
 		})

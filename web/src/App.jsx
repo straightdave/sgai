@@ -1,31 +1,33 @@
-import { useEffect, useRef, useState } from 'react'
-import Hls from 'hls.js'
+import { useEffect, useState } from 'react'
+import InterstitialPlayer from './InterstitialPlayer'
 
-const STREAM_URL = '/priv/big_buck_bunny/x36xhzz.m3u8'
+const VOD_STREAM_URL = '/priv/big_buck_bunny/x36xhzz.m3u8'
+
+function modeFromPath(pathname) {
+  return pathname === '/live' ? 'live' : 'vod'
+}
 
 export default function App() {
-  const primaryVideoRef = useRef(null)
-  const adVideoRef = useRef(null)
-  const adHlsRef = useRef(null)
-  const breaksRef = useRef([])
-  const triggeredIdsRef = useRef(new Set())
-  const adModeRef = useRef(null) // null | 'fullscreen' | 'squeezeback'
-
-  const [adMode, setAdMode] = useState(null)
-  const [adCountdown, setAdCountdown] = useState(null)
-  const [adButton, setAdButton] = useState(null)
-  const [adButtonClicked, setAdButtonClicked] = useState(false)
+  const [mode, setMode] = useState(() => modeFromPath(window.location.pathname))
   const [health, setHealth] = useState({ state: 'loading', text: 'Checking API...' })
-  const [playerError, setPlayerError] = useState(null)
+  const [liveStatus, setLiveStatus] = useState({ running: false, masterUrl: '' })
+  const [liveBusy, setLiveBusy] = useState(false)
+  const [liveError, setLiveError] = useState(null)
+
+  useEffect(() => {
+    const onPopState = () => {
+      setMode(modeFromPath(window.location.pathname))
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
 
     fetch('/api/health')
       .then((res) => {
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`)
-        }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
         return res.json()
       })
       .then((data) => {
@@ -45,201 +47,141 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    const primaryVideo = primaryVideoRef.current
-    const adVideo = adVideoRef.current
-    if (!primaryVideo || !adVideo) return
+    if (mode !== 'live') return
+    let cancelled = false
 
-    let destroyed = false
-
-    const finishAd = () => {
-      const wasFullscreen = adModeRef.current === 'fullscreen'
-      if (adHlsRef.current) {
-        adHlsRef.current.destroy()
-        adHlsRef.current = null
-      }
-      adVideo.removeAttribute('src')
-      adVideo.load()
-      adModeRef.current = null
-      setAdMode(null)
-      setAdButton(null)
-      setAdButtonClicked(false)
-      if (!destroyed && wasFullscreen) {
-        primaryVideo.play().catch(() => {})
-      }
-    }
-
-    const startAd = async (item) => {
-      adModeRef.current = 'loading'
-      setAdCountdown(null)
-      setAdButton(null)
-      setAdButtonClicked(false)
-
-      try {
-        let adUri = item.assetUri
-        let layout = ''
-        let buttonMeta = null
-        if (!adUri && item.assetListUrl) {
-          const assetListUrl = new URL(item.assetListUrl, window.location.origin)
-          assetListUrl.searchParams.set('clickable', '1')
-          assetListUrl.searchParams.set('squeezeback', '1')
-          const res = await fetch(assetListUrl.pathname + assetListUrl.search)
-          if (!res.ok) throw new Error(`Ad query HTTP ${res.status}`)
-          const data = await res.json()
-          const asset = data?.ASSETS?.[0]
-          adUri = asset?.URI
-          layout = asset?.LAYOUT || ''
-          buttonMeta = asset?.BUTTON || null
-        }
-        if (!adUri || destroyed) {
-          finishAd()
-          return
-        }
-
-        const mode = layout === 'l-squeezeback' ? 'squeezeback' : 'fullscreen'
-        adModeRef.current = mode
-        setAdMode(mode)
-        setAdButton(buttonMeta)
-        if (mode === 'fullscreen') {
-          primaryVideo.pause()
-        }
-
-        if (adUri.endsWith('.m3u8') && Hls.isSupported()) {
-          const adHls = new Hls()
-          adHlsRef.current = adHls
-          adHls.loadSource(adUri)
-          adHls.attachMedia(adVideo)
-          adHls.on(Hls.Events.MANIFEST_PARSED, () => {
-            adVideo.play().catch(() => finishAd())
-          })
-          adHls.on(Hls.Events.ERROR, (_ev, data) => {
-            if (data.fatal) finishAd()
-          })
-        } else {
-          adVideo.src = adUri
-          adVideo.play().catch(() => finishAd())
-        }
-      } catch (err) {
-        setPlayerError(`Ad error: ${err.message}`)
-        finishAd()
-      }
-    }
-
-    const onAdEnded = () => finishAd()
-    const onAdError = () => finishAd()
-    adVideo.addEventListener('ended', onAdEnded)
-    adVideo.addEventListener('error', onAdError)
-
-    const onTimeUpdate = () => {
-      if (adModeRef.current) return
-      const now = primaryVideo.currentTime
-      const nextBreak = breaksRef.current.find(
-        (b) => !triggeredIdsRef.current.has(b.id) && now >= b.time && now < b.time + 2
-      )
-      if (nextBreak) {
-        triggeredIdsRef.current.add(nextBreak.id)
-        startAd(nextBreak)
-        return
-      }
-
-      const upcoming = breaksRef.current.find(
-        (b) => !triggeredIdsRef.current.has(b.id) && b.time - now > 0 && b.time - now <= 5
-      )
-      setAdCountdown(upcoming ? Math.ceil(upcoming.time - now) : null)
-    }
-    primaryVideo.addEventListener('timeupdate', onTimeUpdate)
-
-    let primaryHls = null
-    if (Hls.isSupported()) {
-      primaryHls = new Hls({ enableInterstitialPlayback: false })
-      primaryHls.loadSource(STREAM_URL)
-      primaryHls.attachMedia(primaryVideo)
-
-      primaryHls.on(Hls.Events.LEVEL_LOADED, (_event, data) => {
-        const details = data?.details
-        const basePdt = details?.fragments?.[0]?.programDateTime
-        if (!details?.dateRanges || !basePdt) return
-
-        const parsed = Object.values(details.dateRanges)
-          .filter((dr) => dr && dr.class === 'com.apple.hls.interstitial')
-          .map((dr) => ({
-            id: dr.id,
-            time: (dr.startDate.getTime() - basePdt) / 1000,
-            assetListUrl: dr.attr?.['X-ASSET-LIST'] || '',
-            assetUri: dr.attr?.['X-ASSET-URI'] || '',
-          }))
-          .sort((a, b) => a.time - b.time)
-
-        breaksRef.current = parsed
+    fetch('/api/live/status')
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        return res.json()
       })
-
-      primaryHls.on(Hls.Events.ERROR, (_event, data) => {
-        if (data.fatal) {
-          setPlayerError(`HLS error: ${data.details}`)
+      .then((data) => {
+        if (!cancelled) {
+          setLiveStatus(data)
+          setLiveError(null)
         }
       })
-    } else if (primaryVideo.canPlayType('application/vnd.apple.mpegurl')) {
-      primaryVideo.src = STREAM_URL
-    } else {
-      setPlayerError('HLS is not supported in this browser.')
-    }
+      .catch((err) => {
+        if (!cancelled) {
+          setLiveError(`Failed to check live status: ${err.message}`)
+        }
+      })
 
     return () => {
-      destroyed = true
-      primaryVideo.removeEventListener('timeupdate', onTimeUpdate)
-      adVideo.removeEventListener('ended', onAdEnded)
-      adVideo.removeEventListener('error', onAdError)
-      if (adHlsRef.current) {
-        adHlsRef.current.destroy()
-        adHlsRef.current = null
-      }
-      if (primaryHls) {
-        primaryHls.destroy()
-      }
+      cancelled = true
     }
-  }, [])
+  }, [mode])
 
-  const handleAdButtonClick = () => {
-    if (!adButton?.URL) return
-    if (adButton.ACTION === 'request') {
-      fetch(adButton.URL, { method: 'POST' })
-        .then(() => setAdButtonClicked(true))
-        .catch(() => {})
-      return
+  const switchMode = (nextMode) => {
+    if (nextMode === mode) return
+    const nextPath = nextMode === 'live' ? '/live' : '/vod'
+    window.history.pushState({}, '', nextPath)
+    setMode(nextMode)
+  }
+
+  const handleStartLive = async () => {
+    setLiveBusy(true)
+    setLiveError(null)
+    try {
+      const res = await fetch('/api/live/start', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data?.error || `HTTP ${res.status}`)
+      }
+      setLiveStatus(data)
+    } catch (err) {
+      setLiveError(`Start failed: ${err.message}`)
+    } finally {
+      setLiveBusy(false)
     }
-    window.open(adButton.URL, '_blank', 'noopener,noreferrer')
+  }
+
+  const handleStopLive = async () => {
+    setLiveBusy(true)
+    setLiveError(null)
+    try {
+      const res = await fetch('/api/live/stop', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data?.error || `HTTP ${res.status}`)
+      }
+      setLiveStatus(data)
+    } catch (err) {
+      setLiveError(`Stop failed: ${err.message}`)
+    } finally {
+      setLiveBusy(false)
+    }
   }
 
   return (
     <main className="container">
+      <nav className="mode-nav" aria-label="Demo mode">
+        <button
+          type="button"
+          className={`mode-tab ${mode === 'vod' ? 'active' : ''}`}
+          onClick={() => switchMode('vod')}
+        >
+          VOD Demo
+        </button>
+        <button
+          type="button"
+          className={`mode-tab ${mode === 'live' ? 'active' : ''}`}
+          onClick={() => switchMode('live')}
+        >
+          Linear (Live) Demo
+        </button>
+      </nav>
+
       <h1>SGAI</h1>
-      <p>Go + Chi web service with an embedded React JS application.</p>
-      <div className="player-wrapper">
-        <video
-          ref={primaryVideoRef}
-          className={`hls-player primary-player ${adMode === 'squeezeback' ? 'squeezed' : ''}`}
-          controls={adMode !== 'fullscreen'}
-          playsInline
+      <p>
+        {mode === 'live'
+          ? 'Linear live stream demo looping Big Buck Bunny with on-the-fly HLS interstitials.'
+          : 'VOD demo with HLS interstitials (fullscreen and L-squeezeback).'}
+      </p>
+
+      {mode === 'live' && (
+        <section className="live-controls" aria-label="Live stream controls">
+          <div className="live-buttons">
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleStartLive}
+              disabled={liveBusy || liveStatus.running}
+            >
+              {liveBusy && !liveStatus.running ? 'Starting...' : 'Start Live Stream'}
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={handleStopLive}
+              disabled={liveBusy || !liveStatus.running}
+            >
+              Stop Live Stream
+            </button>
+            <span className={`live-pill ${liveStatus.running ? 'running' : 'offline'}`}>
+              {liveStatus.running ? 'LIVE' : 'Offline'}
+            </span>
+          </div>
+          {liveStatus.running && liveStatus.masterUrl && (
+            <div className="live-manifest-url">
+              Manifest: <code>{liveStatus.masterUrl}</code>
+            </div>
+          )}
+          {liveError && <p className="player-error">{liveError}</p>}
+        </section>
+      )}
+
+      {mode === 'vod' ? (
+        <InterstitialPlayer streamUrl={VOD_STREAM_URL} />
+      ) : (
+        <InterstitialPlayer
+          streamUrl={liveStatus.running ? liveStatus.masterUrl : ''}
+          isLive
+          autoPlay
+          emptyMessage='Live stream is offline. Click "Start Live Stream" above to generate and play the endless HLS stream.'
         />
-        <video
-          ref={adVideoRef}
-          className={`hls-player ad-player ${adMode ? `active ${adMode}` : ''}`}
-          playsInline
-        />
-        {adMode && <span className="ad-badge">Ad</span>}
-        {adMode && adButton && (
-          <button
-            type="button"
-            className="ad-cta-button"
-            onClick={handleAdButtonClick}
-          >
-            {adButtonClicked ? 'Clicked!' : adButton.LABEL}
-          </button>
-        )}
-        {!adMode && adCountdown !== null && (
-          <span className="ad-badge">Ad in {adCountdown}s</span>
-        )}
-        {playerError && <p className="player-error">{playerError}</p>}
-      </div>
+      )}
+
       <div className={`status ${health.state}`}>{health.text}</div>
     </main>
   )

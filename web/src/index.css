@@ -153,3 +153,136 @@ p {
   background: #e5e7eb;
   color: #374151;
 }
+
+.mode-nav {
+  display: inline-flex;
+  gap: 0.35rem;
+  padding: 0.25rem;
+  margin-bottom: 1.25rem;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.mode-tab {
+  padding: 0.45rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #4b5563;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.mode-tab:hover {
+  color: #111827;
+}
+
+.mode-tab.active {
+  background: #ffffff;
+  color: #111827;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.live-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.live-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+}
+
+.btn {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.btn-secondary {
+  background: #ffffff;
+  color: #374151;
+  border-color: #d1d5db;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #f3f4f6;
+}
+
+.live-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.live-pill.running {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.live-pill.offline {
+  background: #e5e7eb;
+  color: #4b5563;
+}
+
+.live-manifest-url {
+  font-size: 0.8125rem;
+  color: #4b5563;
+}
+
+.live-manifest-url code {
+  padding: 0.15rem 0.4rem;
+  background: #e5e7eb;
+  border-radius: 4px;
+  color: #111827;
+}
+
+.player-placeholder {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(17, 24, 39, 0.92);
+  color: #d1d5db;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
