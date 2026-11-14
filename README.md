@@ -4,9 +4,10 @@ Go web service using [Chi](https://github.com/go-chi/chi) with an embedded React
 
 ## Structure
 
+- `embed.go` — Embeds `web/dist` into the Go binary
 - `cmd/server/main.go` — HTTP server entrypoint with graceful shutdown
 - `internal/server/server.go` — Chi router, `/api/*` endpoints, and SPA static/fallback handler
-- `web/` — React JS application (Vite) embedded into the Go binary via `web/embed.go`
+- `web/` — Pure Vite + React JS application
 
 ## Development
 

@@ -11,8 +11,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/straightdave/sgai"
 	"github.com/straightdave/sgai/internal/server"
-	"github.com/straightdave/sgai/web"
 )
 
 func main() {
@@ -24,7 +24,7 @@ func main() {
 	addr := flag.String("addr", defaultAddr, "HTTP listen address")
 	flag.Parse()
 
-	frontendFS, err := web.DistFS()
+	frontendFS, err := sgai.DistFS()
 	if err != nil {
 		log.Fatalf("load embedded frontend: %v", err)
 	}
