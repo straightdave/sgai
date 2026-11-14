@@ -1,0 +1,222 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10000010000000000000001 /* SGAIPlayerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000010000000000000001 /* SGAIPlayerApp.swift */; };
+		A10000020000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000020000000000000002 /* ContentView.swift */; };
+		A10000030000000000000003 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000030000000000000003 /* Models.swift */; };
+		A10000040000000000000004 /* InterstitialPlayerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000040000000000000004 /* InterstitialPlayerController.swift */; };
+		A10000050000000000000005 /* PlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000050000000000000005 /* PlayerView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		B10000010000000000000001 /* SGAIPlayerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SGAIPlayerApp.swift; sourceTree = "<group>"; };
+		B10000020000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		B10000030000000000000003 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		B10000040000000000000004 /* InterstitialPlayerController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterstitialPlayerController.swift; sourceTree = "<group>"; };
+		B10000050000000000000005 /* PlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerView.swift; sourceTree = "<group>"; };
+		B10000060000000000000006 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		C10000010000000000000001 /* SGAIPlayer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SGAIPlayer.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		D10000010000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		E10000010000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				E10000020000000000000002 /* SGAIPlayer */,
+				E10000030000000000000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		E10000020000000000000002 /* SGAIPlayer */ = {
+			isa = PBXGroup;
+			children = (
+				B10000010000000000000001 /* SGAIPlayerApp.swift */,
+				B10000020000000000000002 /* ContentView.swift */,
+				B10000030000000000000003 /* Models.swift */,
+				B10000040000000000000004 /* InterstitialPlayerController.swift */,
+				B10000050000000000000005 /* PlayerView.swift */,
+				B10000060000000000000006 /* Info.plist */,
+			);
+			path = SGAIPlayer;
+			sourceTree = "<group>";
+		};
+		E10000030000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				C10000010000000000000001 /* SGAIPlayer.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		F10000010000000000000001 /* SGAIPlayer */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F20000020000000000000002 /* Build configuration list for PBXNativeTarget "SGAIPlayer" */;
+			buildPhases = (
+				F30000010000000000000001 /* Sources */,
+				D10000010000000000000001 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SGAIPlayer;
+			productName = SGAIPlayer;
+			productReference = C10000010000000000000001 /* SGAIPlayer.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		F00000010000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+			};
+			buildConfigurationList = F20000010000000000000001 /* Build configuration list for PBXProject "SGAIPlayer" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = E10000010000000000000001;
+			productRefGroup = E10000030000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				F10000010000000000000001 /* SGAIPlayer */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		F30000010000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000010000000000000001 /* SGAIPlayerApp.swift in Sources */,
+				A10000020000000000000002 /* ContentView.swift in Sources */,
+				A10000030000000000000003 /* Models.swift in Sources */,
+				A10000040000000000000004 /* InterstitialPlayerController.swift in Sources */,
+				A10000050000000000000005 /* PlayerView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		F40000010000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				SDKROOT = iphoneos;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		F40000020000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		F40000030000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SGAIPlayer/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.straightdave.SGAIPlayer;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F40000040000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SGAIPlayer/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.straightdave.SGAIPlayer;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		F20000010000000000000001 /* Build configuration list for PBXProject "SGAIPlayer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F40000010000000000000001 /* Debug */,
+				F40000020000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F20000020000000000000002 /* Build configuration list for PBXNativeTarget "SGAIPlayer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F40000030000000000000003 /* Debug */,
+				F40000040000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = F00000010000000000000001 /* Project object */;
+}

@@ -8,6 +8,7 @@ Go web service using [Chi](https://github.com/go-chi/chi) with an embedded React
 - `cmd/server/main.go` — HTTP server entrypoint with graceful shutdown
 - `internal/server/server.go` — Chi router, `/api/*` endpoints, and SPA static/fallback handler
 - `web/` — Pure Vite + React JS application
+- `ios_player/` — Native SwiftUI + AVFoundation iOS demo app
 
 ## Development
 
@@ -43,3 +44,16 @@ make build
 ```bash
 make test
 ```
+
+## iOS Demo
+
+1. Start the Go server:
+
+```bash
+make build && ./bin/server
+```
+
+2. Open `ios_player/SGAIPlayer/SGAIPlayer.xcodeproj` in Xcode.
+3. Select an iOS Simulator or a physical iPhone on the same Wi-Fi network and run (`Cmd+R`).
+   - On **Simulator**, keep the server URL as `http://localhost:8080`.
+   - On a **physical iPhone**, set the server URL to `http://<your-mac-ip>:8080`.
