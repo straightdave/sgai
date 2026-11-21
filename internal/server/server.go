@@ -1,15 +1,40 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"io/fs"
+	"log"
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
+
+type sessionIDContextKey struct{}
+
+// SessionIDFromContext returns the playback session ID extracted from the request, if any.
+func SessionIDFromContext(ctx context.Context) string {
+	sid, _ := ctx.Value(sessionIDContextKey{}).(string)
+	return sid
+}
+
+func sessionIDMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sid := strings.TrimSpace(r.URL.Query().Get("sid"))
+		if sid == "" {
+			sid = strings.TrimSpace(r.Header.Get("X-Session-ID"))
+		}
+		if sid != "" {
+			log.Printf("session=%s %s %s", sid, r.Method, r.URL.Path)
+			r = r.WithContext(context.WithValue(r.Context(), sessionIDContextKey{}, sid))
+		}
+		next.ServeHTTP(w, r)
+	})
+}
 
 // New constructs the Chi router with API routes, optional /priv static handler, and the embedded SPA handler.
 func New(frontendFS, privFS fs.FS) http.Handler {
@@ -19,6 +44,7 @@ func New(frontendFS, privFS fs.FS) http.Handler {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(sessionIDMiddleware)
 
 	live := NewLiveStream(privFS)
 
@@ -68,6 +94,7 @@ type interstitialAsset struct {
 
 func handleAds(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
+	sid := SessionIDFromContext(r.Context())
 
 	// Get Player capability
 	clickable := q.Get("clickable") == "1" || q.Get("clickable") == "true"
@@ -84,10 +111,14 @@ func handleAds(w http.ResponseWriter, r *http.Request) {
 			Layout:   "l-squeezeback",
 		}
 		if clickable {
+			clickURL := "/api/ads/click"
+			if sid != "" {
+				clickURL += "?sid=" + url.QueryEscape(sid)
+			}
 			asset.Button = &interstitialButton{
 				Label:  "Claim Offer",
 				Action: "request",
-				URL:    "/api/ads/click",
+				URL:    clickURL,
 			}
 		}
 		writeJSON(w, http.StatusOK, map[string][]interstitialAsset{
@@ -114,7 +145,11 @@ func handleAds(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleAdClick(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	resp := map[string]string{"status": "ok"}
+	if sid := SessionIDFromContext(r.Context()); sid != "" {
+		resp["sid"] = sid
+	}
+	writeJSON(w, http.StatusOK, resp)
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {

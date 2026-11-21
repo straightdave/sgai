@@ -14,6 +14,7 @@ final class InterstitialPlayerController: NSObject, ObservableObject {
     @Published var adButtonClicked = false
     @Published var playerError: String?
     @Published var isLoaded = false
+    @Published var sessionID: String?
 
     private var baseURLString = "http://localhost:8080"
     private var isLive = false
@@ -51,12 +52,17 @@ final class InterstitialPlayerController: NSObject, ObservableObject {
 
         resetState()
 
+        let sid = UUID().uuidString
         guard let streamPath, !streamPath.isEmpty,
-              let url = resolveURL(streamPath) else {
+              let resolvedURL = resolveURL(streamPath),
+              let url = appendSessionID(sid, to: resolvedURL) else {
             primaryPlayer.replaceCurrentItem(with: nil)
+            sessionID = nil
             isLoaded = false
             return
         }
+
+        sessionID = sid
 
         let item = AVPlayerItem(url: url)
         let collector = AVPlayerItemMetadataCollector()
@@ -72,6 +78,7 @@ final class InterstitialPlayerController: NSObject, ObservableObject {
     func stop() {
         resetState()
         primaryPlayer.replaceCurrentItem(with: nil)
+        sessionID = nil
         isLoaded = false
     }
 
@@ -278,6 +285,16 @@ final class InterstitialPlayerController: NSObject, ObservableObject {
         }
         let path = raw.hasPrefix("/") ? raw : "/\(raw)"
         return URL(string: "\(baseURLString)\(path)")
+    }
+
+    private func appendSessionID(_ sid: String, to url: URL) -> URL? {
+        guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+            return nil
+        }
+        var items = (components.queryItems ?? []).filter { $0.name != "sid" }
+        items.append(URLQueryItem(name: "sid", value: sid))
+        components.queryItems = items
+        return components.url
     }
 
     private func buildAssetListURL(_ raw: String) -> URL? {

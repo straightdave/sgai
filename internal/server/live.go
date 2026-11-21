@@ -95,7 +95,11 @@ func (ls *LiveStream) loadVariantsLocked() error {
 			continue
 		}
 
-		variantRel := path.Clean(path.Join(baseDir, line))
+		uriPath := line
+		if idx := strings.IndexByte(uriPath, '?'); idx >= 0 {
+			uriPath = uriPath[:idx]
+		}
+		variantRel := path.Clean(path.Join(baseDir, uriPath))
 		key := path.Base(path.Dir(variantRel))
 		if key == "" || key == "." {
 			key = fmt.Sprintf("v%d", len(keys))
@@ -235,12 +239,14 @@ func (ls *LiveStream) MasterPlaylist() (string, bool) {
 
 	var b strings.Builder
 	b.WriteString("#EXTM3U\n")
+	b.WriteString("#EXT-X-VERSION:11\n")
+	b.WriteString("#EXT-X-DEFINE:QUERYPARAM=\"sid\"\n")
 	for _, key := range ls.variantKeys {
 		v := ls.variants[key]
 		b.WriteString(v.StreamInfLine)
 		b.WriteByte('\n')
 		b.WriteString(key)
-		b.WriteString("/playlist.m3u8\n")
+		b.WriteString("/playlist.m3u8?sid={$sid}\n")
 	}
 	return b.String(), true
 }
@@ -288,7 +294,8 @@ func (ls *LiveStream) VariantPlaylist(key string) (string, bool) {
 
 	var b strings.Builder
 	b.WriteString("#EXTM3U\n")
-	b.WriteString("#EXT-X-VERSION:3\n")
+	b.WriteString("#EXT-X-VERSION:11\n")
+	b.WriteString("#EXT-X-DEFINE:IMPORT=\"sid\"\n")
 	fmt.Fprintf(&b, "#EXT-X-TARGETDURATION:%d\n", liveTargetDuration)
 	fmt.Fprintf(&b, "#EXT-X-MEDIA-SEQUENCE:%d\n", firstSeq)
 	fmt.Fprintf(&b, "#EXT-X-DISCONTINUITY-SEQUENCE:%d\n", discSeq)
@@ -318,7 +325,7 @@ func (ls *LiveStream) VariantPlaylist(key string) (string, bool) {
 		}
 		breakPDT := ls.startedAt.Add(time.Duration(breakOffset * float64(time.Second))).UTC()
 		slotID := fmt.Sprintf("live-break-%d", k)
-		assetList := fmt.Sprintf("/api/ads?slot=%s&duration=%.1f&playback=%s", slotID, duration, playback)
+		assetList := fmt.Sprintf("/api/ads?slot=%s&duration=%.1f&playback=%s&sid={$sid}", slotID, duration, playback)
 		fmt.Fprintf(
 			&b,
 			"#EXT-X-DATERANGE:ID=%q,CLASS=\"com.apple.hls.interstitial\",START-DATE=%q,DURATION=%.1f,X-ASSET-LIST=%q\n",

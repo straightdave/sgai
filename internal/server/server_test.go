@@ -259,4 +259,42 @@ func TestAdsEndpoint(t *testing.T) {
 			t.Fatalf("expected status 200, got %d", rec.Code)
 		}
 	})
+
+	t.Run("sid is propagated into request button URL and recognized on click", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/ads?slot=ad-break-40s&duration=10.0&playback=continue&squeezeback=1&clickable=1&sid=sess-abc-123", nil)
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected status 200, got %d", rec.Code)
+		}
+		var sb struct {
+			Assets []struct {
+				Button *struct {
+					Action string `json:"ACTION"`
+					URL    string `json:"URL"`
+				} `json:"BUTTON"`
+			} `json:"ASSETS"`
+		}
+		if err := json.NewDecoder(rec.Body).Decode(&sb); err != nil {
+			t.Fatalf("failed to decode JSON: %v", err)
+		}
+		if len(sb.Assets) != 1 || sb.Assets[0].Button == nil || sb.Assets[0].Button.URL != "/api/ads/click?sid=sess-abc-123" {
+			t.Fatalf("expected click URL with sid, got %+v", sb.Assets)
+		}
+
+		clickReq := httptest.NewRequest(http.MethodPost, sb.Assets[0].Button.URL, nil)
+		clickRec := httptest.NewRecorder()
+		h.ServeHTTP(clickRec, clickReq)
+		if clickRec.Code != http.StatusOK {
+			t.Fatalf("expected status 200 on click, got %d", clickRec.Code)
+		}
+		var clickBody map[string]string
+		if err := json.NewDecoder(clickRec.Body).Decode(&clickBody); err != nil {
+			t.Fatalf("failed to decode click JSON: %v", err)
+		}
+		if clickBody["status"] != "ok" || clickBody["sid"] != "sess-abc-123" {
+			t.Fatalf("unexpected click response: %+v", clickBody)
+		}
+	})
 }

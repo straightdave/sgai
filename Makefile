@@ -9,10 +9,11 @@ build-go:
 	go build -o bin/server ./cmd/server
 
 dev:
-	@trap 'kill 0' INT TERM EXIT; \
-	$(MAKE) dev-api & \
-	$(MAKE) dev-web & \
-	wait
+	@-trap 'wait $$api_pid $$web_pid 2>/dev/null; exit 0' INT; \
+	trap 'kill $$api_pid $$web_pid 2>/dev/null; wait $$api_pid $$web_pid 2>/dev/null; exit 0' TERM; \
+	go run ./cmd/server & api_pid=$$!; \
+	(cd web && npm run dev) & web_pid=$$!; \
+	wait $$api_pid $$web_pid 2>/dev/null
 
 dev-api:
 	go run ./cmd/server

@@ -1,11 +1,12 @@
 #EXTM3U
-#EXT-X-VERSION:3
+#EXT-X-VERSION:11
+#EXT-X-DEFINE:IMPORT="sid"
 #EXT-X-PLAYLIST-TYPE:VOD
 #EXT-X-TARGETDURATION:11
 #EXT-X-PROGRAM-DATE-TIME:2026-01-01T00:00:00.000Z
-#EXT-X-DATERANGE:ID="ad-break-10s",CLASS="com.apple.hls.interstitial",START-DATE="2026-01-01T00:00:10.000Z",DURATION=5.0,X-ASSET-LIST="/api/ads?slot=ad-break-10s&duration=5.0&playback=block",X-RESUME-OFFSET=0
-#EXT-X-DATERANGE:ID="ad-break-30s",CLASS="com.apple.hls.interstitial",START-DATE="2026-01-01T00:00:30.000Z",DURATION=5.0,X-ASSET-LIST="/api/ads?slot=ad-break-30s&duration=5.0&playback=block",X-RESUME-OFFSET=0
-#EXT-X-DATERANGE:ID="ad-break-40s",CLASS="com.apple.hls.interstitial",START-DATE="2026-01-01T00:00:40.000Z",DURATION=10.0,X-ASSET-LIST="/api/ads?slot=ad-break-40s&duration=10.0&playback=continue"
+#EXT-X-DATERANGE:ID="ad-break-10s",CLASS="com.apple.hls.interstitial",START-DATE="2026-01-01T00:00:10.000Z",DURATION=5.0,X-ASSET-LIST="/api/ads?slot=ad-break-10s&duration=5.0&playback=block&sid={$sid}",X-RESUME-OFFSET=0
+#EXT-X-DATERANGE:ID="ad-break-30s",CLASS="com.apple.hls.interstitial",START-DATE="2026-01-01T00:00:30.000Z",DURATION=5.0,X-ASSET-LIST="/api/ads?slot=ad-break-30s&duration=5.0&playback=block&sid={$sid}",X-RESUME-OFFSET=0
+#EXT-X-DATERANGE:ID="ad-break-40s",CLASS="com.apple.hls.interstitial",START-DATE="2026-01-01T00:00:40.000Z",DURATION=10.0,X-ASSET-LIST="/api/ads?slot=ad-break-40s&duration=10.0&playback=continue&sid={$sid}"
 #EXTINF:10.000,
 https://test-streams.mux.dev/x36xhzz/url_6/url_846/193039199_mp4_h264_aac_hq_7.ts
 #EXTINF:10.000,

@@ -38,6 +38,13 @@ struct ContentView: View {
                             : "Tap Connect to load the VOD stream."
                     )
 
+                    if let sessionID = playerController.sessionID {
+                        Text("Session ID: \(sessionID)")
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.secondary)
+                            .textSelection(.enabled)
+                    }
+
                     if let error = playerController.playerError {
                         Text(error)
                             .font(.footnote)

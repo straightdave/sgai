@@ -1,6 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
 import Hls from 'hls.js'
 
+function generateSessionId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+}
+
+function appendSessionId(rawUrl, sid) {
+  const url = new URL(rawUrl, window.location.origin)
+  url.searchParams.set('sid', sid)
+  return url.origin === window.location.origin ? url.pathname + url.search : url.toString()
+}
+
 function videoHasAudio(video, hlsInstance) {
   if (hlsInstance?.audioTracks?.length > 0) return true
   if (typeof video.mozHasAudio === 'boolean') return video.mozHasAudio
@@ -31,6 +44,7 @@ export default function InterstitialPlayer({
   const [adButton, setAdButton] = useState(null)
   const [adButtonClicked, setAdButtonClicked] = useState(false)
   const [playerError, setPlayerError] = useState(null)
+  const [sessionId, setSessionId] = useState(null)
 
   useEffect(() => {
     const primaryVideo = primaryVideoRef.current
@@ -48,6 +62,7 @@ export default function InterstitialPlayer({
     setPlayerError(null)
 
     if (!streamUrl) {
+      setSessionId(null)
       primaryVideo.removeAttribute('src')
       primaryVideo.load()
       return
@@ -177,10 +192,14 @@ export default function InterstitialPlayer({
     }
     primaryVideo.addEventListener('timeupdate', onTimeUpdate)
 
+    const nextSessionId = generateSessionId()
+    setSessionId(nextSessionId)
+    const sessionStreamUrl = appendSessionId(streamUrl, nextSessionId)
+
     let primaryHls = null
     if (Hls.isSupported()) {
       primaryHls = new Hls({ enableInterstitialPlayback: false })
-      primaryHls.loadSource(streamUrl)
+      primaryHls.loadSource(sessionStreamUrl)
       primaryHls.attachMedia(primaryVideo)
 
       if (autoPlay) {
@@ -217,7 +236,7 @@ export default function InterstitialPlayer({
         }
       })
     } else if (primaryVideo.canPlayType('application/vnd.apple.mpegurl')) {
-      primaryVideo.src = streamUrl
+      primaryVideo.src = sessionStreamUrl
       if (autoPlay) {
         primaryVideo.play().catch(() => {})
       }
@@ -255,33 +274,40 @@ export default function InterstitialPlayer({
   }
 
   return (
-    <div className="player-wrapper">
-      <video
-        ref={primaryVideoRef}
-        className={`hls-player primary-player ${adMode === 'squeezeback' ? 'squeezed' : ''}`}
-        controls={Boolean(streamUrl) && adMode !== 'fullscreen'}
-        playsInline
-      />
-      <video
-        ref={adVideoRef}
-        className={`hls-player ad-player ${adMode ? `active ${adMode}` : ''}`}
-        playsInline
-      />
-      {!streamUrl && <div className="player-placeholder">{emptyMessage}</div>}
-      {adMode && <span className="ad-badge">Ad</span>}
-      {adMode && adButton && (
-        <button
-          type="button"
-          className="ad-cta-button"
-          onClick={handleAdButtonClick}
-        >
-          {adButtonClicked ? 'Clicked!' : adButton.LABEL}
-        </button>
+    <>
+      <div className="player-wrapper">
+        <video
+          ref={primaryVideoRef}
+          className={`hls-player primary-player ${adMode === 'squeezeback' ? 'squeezed' : ''}`}
+          controls={Boolean(streamUrl) && adMode !== 'fullscreen'}
+          playsInline
+        />
+        <video
+          ref={adVideoRef}
+          className={`hls-player ad-player ${adMode ? `active ${adMode}` : ''}`}
+          playsInline
+        />
+        {!streamUrl && <div className="player-placeholder">{emptyMessage}</div>}
+        {adMode && <span className="ad-badge">Ad</span>}
+        {adMode && adButton && (
+          <button
+            type="button"
+            className="ad-cta-button"
+            onClick={handleAdButtonClick}
+          >
+            {adButtonClicked ? 'Clicked!' : adButton.LABEL}
+          </button>
+        )}
+        {!adMode && adCountdown !== null && (
+          <span className="ad-badge">Ad in {adCountdown}s</span>
+        )}
+        {playerError && <p className="player-error">{playerError}</p>}
+      </div>
+      {sessionId && (
+        <div className="session-info">
+          Session ID: <code>{sessionId}</code>
+        </div>
       )}
-      {!adMode && adCountdown !== null && (
-        <span className="ad-badge">Ad in {adCountdown}s</span>
-      )}
-      {playerError && <p className="player-error">{playerError}</p>}
-    </div>
+    </>
   )
 }

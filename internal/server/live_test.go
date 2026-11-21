@@ -14,8 +14,10 @@ func testLivePrivFS() fstest.MapFS {
 	return fstest.MapFS{
 		"big_buck_bunny/x36xhzz.m3u8": {
 			Data: []byte(`#EXTM3U
+#EXT-X-VERSION:11
+#EXT-X-DEFINE:QUERYPARAM="sid"
 #EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=2149280,RESOLUTION=1280x720,NAME="720"
-url_0/playlist.m3u8
+url_0/playlist.m3u8?sid={$sid}
 `),
 		},
 		"big_buck_bunny/url_0/playlist.m3u8": {
@@ -61,14 +63,23 @@ func TestLiveStreamLifecycleAndLooping(t *testing.T) {
 	if !ok {
 		t.Fatal("expected master playlist when running")
 	}
-	if !strings.Contains(master, "url_0/playlist.m3u8") {
-		t.Fatalf("expected rewritten variant URI in master playlist, got:\n%s", master)
+	if !strings.Contains(master, `#EXT-X-DEFINE:QUERYPARAM="sid"`) {
+		t.Fatalf("expected EXT-X-DEFINE QUERYPARAM in master playlist, got:\n%s", master)
+	}
+	if !strings.Contains(master, "url_0/playlist.m3u8?sid={$sid}") {
+		t.Fatalf("expected rewritten variant URI with sid in master playlist, got:\n%s", master)
 	}
 
 	// At t=0 (+30s initial lead), headSeq should be 3 (seg3), window 0..3.
 	pl, ok := ls.VariantPlaylist("url_0")
 	if !ok {
 		t.Fatal("expected variant playlist")
+	}
+	if !strings.Contains(pl, `#EXT-X-DEFINE:IMPORT="sid"`) {
+		t.Fatalf("expected EXT-X-DEFINE IMPORT in live variant playlist, got:\n%s", pl)
+	}
+	if !strings.Contains(pl, "&sid={$sid}") {
+		t.Fatalf("expected sid variable in X-ASSET-LIST, got:\n%s", pl)
 	}
 	if strings.Contains(pl, "#EXT-X-ENDLIST") || strings.Contains(pl, "#EXT-X-PLAYLIST-TYPE:VOD") {
 		t.Fatalf("live playlist must not contain VOD/ENDLIST tags:\n%s", pl)
